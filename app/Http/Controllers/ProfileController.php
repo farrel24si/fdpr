@@ -14,9 +14,6 @@ class ProfileController extends Controller
      */
     public function show()
     {
-        // LOGIKA BARU:
-        // Tidak perlu cek session manual. Middleware 'checkislogin' sudah menjamin user login.
-
         $user = Auth::user(); // Ambil data user yang sedang login saat ini
         return view('pages.profile.show', compact('user'));
     }
@@ -31,7 +28,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Update profil (Foto & Data)
+     * Update profil (Nama, Email, Foto)
      */
     public function update(Request $request)
     {
@@ -39,27 +36,40 @@ class ProfileController extends Controller
         $user = Auth::user();
 
         // Kita cari ulang instance User berdasarkan ID agar aman saat save()
-        // (Kadang Auth::user() hanya mengembalikan object interface)
         $userData = User::findOrFail($user->id);
 
+        // 1. Validasi Input
         $request->validate([
-            'profile_picture' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'name'            => 'required|string|max:255',
+            // Email wajib unik di tabel users, tapi abaikan ID user yang sedang login
+            'email'           => 'required|email|max:255|unique:users,email,' . $userData->id,
+            'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        // 1. Cek & Hapus foto lama jika ada
-        if ($userData->profile_picture && Storage::disk('public')->exists($userData->profile_picture)) {
-            Storage::disk('public')->delete($userData->profile_picture);
+        // 2. Update Data Teks (Nama & Email)
+        $userData->name = $request->name;
+        $userData->email = $request->email;
+
+        // 3. Cek apakah ada file foto baru yang diupload
+        if ($request->hasFile('profile_picture')) {
+            
+            // Hapus foto lama jika ada (dan file fisiknya ada)
+            if ($userData->profile_picture && Storage::disk('public')->exists($userData->profile_picture)) {
+                Storage::disk('public')->delete($userData->profile_picture);
+            }
+
+            // Simpan foto baru ke folder 'profile_pictures' di disk 'public'
+            $path = $request->file('profile_picture')->store('profile_pictures', 'public');
+            
+            // Simpan path baru ke database
+            $userData->profile_picture = $path;
         }
 
-        // 2. Simpan foto baru
-        // Simpan ke folder 'profile_pictures' di dalam disk 'public'
-        $path = $request->file('profile_picture')->store('profile_pictures', 'public');
-
-        // 3. Update database
-        $userData->profile_picture = $path;
+        // 4. Simpan Perubahan ke Database
         $userData->save();
 
-        return redirect()->route('pages.profile.show')->with('success', 'Foto profil berhasil diupdate!');
+        return redirect()->route('pages.profile.show')
+            ->with('success', 'Profil berhasil diperbarui!');
     }
 
     /**

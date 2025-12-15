@@ -4,57 +4,121 @@
 
 @section('content')
 <div class="container-fluid pt-4 px-4">
-    <div class="bg-light rounded p-4" style="max-width: 800px; margin: 0 auto;">
-        <div class="d-flex justify-content-between mb-4">
-            <h4 class="mb-0">Assign Petugas Baru</h4>
-            <a href="{{ route('pages.petugas.index') }}" class="btn btn-secondary btn-sm">Kembali</a>
-        </div>
-
-        @if (session('error'))
-            <div class="alert alert-danger">{{ session('error') }}</div>
-        @endif
-
-        <form action="{{ route('pages.petugas.store') }}" method="POST">
-            @csrf
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
             
-            <div class="mb-3">
-                <label class="form-label fw-bold">Pilih Fasilitas</label>
-                <select class="form-select" name="fasilitas_id" required>
-                    <option value="">-- Pilih Fasilitas --</option>
-                    @foreach ($fasilitas as $f)
-                        <option value="{{ $f->fasilitas_id }}">{{ $f->nama }}</option>
-                    @endforeach
-                </select>
+            {{-- JUDUL DAN TOMBOL KEMBALI --}}
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h4 class="fw-bold text-dark mb-1">Assign Petugas Baru</h4>
+                    <p class="text-muted mb-0">Menetapkan warga sebagai pengelola fasilitas.</p>
+                </div>
+                <a href="{{ route('pages.petugas.index') }}" class="btn btn-secondary rounded-pill px-4">
+                    <i class="fas fa-arrow-left me-2"></i> Kembali
+                </a>
             </div>
 
-            <div class="mb-3">
-                <label class="form-label fw-bold">Pilih Warga (Petugas)</label>
-                <select class="form-select" name="warga_id" required>
-                    <option value="">-- Pilih Warga --</option>
-                    @foreach ($warga as $w)
-                        <option value="{{ $w->warga_id }}">{{ $w->nama }} ({{ $w->pekerjaan }})</option>
-                    @endforeach
-                </select>
-            </div>
+            {{-- ALERT MESSAGES (Sama seperti sebelumnya) --}}
+            @if (session('error'))
+                <div class="alert alert-danger border-0 shadow-sm rounded-3 mb-4">
+                    <i class="fas fa-exclamation-circle me-2"></i> {{ session('error') }}
+                </div>
+            @endif
+            @if ($errors->any())
+                <div class="alert alert-danger border-0 shadow-sm rounded-3 mb-4">
+                    <ul class="mb-0">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
 
-            <div class="mb-4">
-                <label class="form-label fw-bold">Peran / Jabatan</label>
-                <div class="row g-3">
-                    @foreach(['Penanggung Jawab', 'Operasional', 'Keamanan', 'Kebersihan'] as $role)
-                    <div class="col-md-6">
-                        <div class="form-check p-3 border rounded bg-white">
-                            <input class="form-check-input" type="radio" name="peran" id="role_{{ $loop->index }}" value="{{ $role }}" required>
-                            <label class="form-check-label w-100 stretched-link fw-bold" for="role_{{ $loop->index }}">
-                                {{ $role }}
-                            </label>
+            <div class="bg-light rounded p-4">
+                <form action="{{ route('pages.petugas.store') }}" method="POST">
+                    @csrf
+                    
+                    {{-- 1. PILIH FASILITAS --}}
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Target Fasilitas</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-building text-primary"></i></span>
+                            <select class="form-select @error('fasilitas_id') is-invalid @enderror" name="fasilitas_id" required>
+                                <option value="">-- Pilih Fasilitas Desa --</option>
+                                @foreach ($fasilitas as $f)
+                                    <option value="{{ $f->fasilitas_id }}" {{ old('fasilitas_id') == $f->fasilitas_id ? 'selected' : '' }}>
+                                        {{ $f->nama }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('fasilitas_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
-                    @endforeach
-                </div>
-            </div>
 
-            <button type="submit" class="btn btn-primary w-100 py-2"><i class="fas fa-save me-2"></i>Simpan Data Petugas</button>
-        </form>
+                    {{-- 2. PILIH WARGA --}}
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Pilih Warga (Calon Petugas)</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-user-friends text-success"></i></span>
+                            <select class="form-select @error('warga_id') is-invalid @enderror" name="warga_id" required>
+                                <option value="">-- Pilih Nama Warga --</option>
+                                @foreach ($warga as $w)
+                                    <option value="{{ $w->warga_id }}" {{ old('warga_id') == $w->warga_id ? 'selected' : '' }}>
+                                        {{ $w->nama }} ({{ $w->pekerjaan }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('warga_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    {{-- 3. PERAN / JABATAN (RADIO BUTTON) --}}
+                    <div class="mb-4">
+                        <label class="form-label fw-bold mb-3">Peran / Jabatan</label>
+                        
+                        <div class="row g-3">
+                            @foreach(['Penanggung Jawab', 'Operasional', 'Keamanan', 'Kebersihan'] as $role)
+                            <div class="col-md-6">
+                                {{-- FIX KLIK: Menggunakan position-relative agar stretched-link tidak bocor keluar --}}
+                                <div class="form-check position-relative p-3 border rounded bg-white">
+                                    <input class="form-check-input @error('peran') is-invalid @enderror" 
+                                           type="radio" name="peran" 
+                                           id="role_{{ $loop->index }}" 
+                                           value="{{ $role }}" 
+                                           required 
+                                           {{ old('peran') == $role ? 'checked' : '' }}>
+                                    
+                                    {{-- Menggunakan stretched-link agar area klik label menjadi satu kotak --}}
+                                    <label class="form-check-label w-100 stretched-link fw-bold text-dark ms-2" 
+                                           for="role_{{ $loop->index }}">
+                                        {{ $role }}
+                                    </label>
+                                    {{-- Hilangkan invalid-feedback di sini, kita tampilkan di bawah row --}}
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+                        {{-- Tampilkan error peran di sini --}}
+                        @error('peran')
+                            <div class="text-danger small mt-2">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    {{-- TOMBOL SIMPAN --}}
+                    <div class="d-grid mt-5">
+                        <button type="submit" class="btn btn-primary fw-bold py-2 rounded-pill">
+                            <i class="fas fa-save me-2"></i> Simpan Data Petugas
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 @endsection

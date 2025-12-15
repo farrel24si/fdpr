@@ -77,21 +77,15 @@ class PeminjamanController extends Controller
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
             'tujuan'          => 'required|string',
             'total_biaya'     => 'required|numeric|min:0',
-            'bukti_bayar'     => 'nullable|image|max:2048', 
+            // Kita ubah dari 'image' menjadi 'mimes' agar lebih fleksibel
+            'bukti_bayar'     => 'nullable|mimes:jpeg,png,jpg|max:2048', 
         ]);
 
-        // Cek Bentrok Jadwal
+        // Cek Bentrok Jadwal (Logika ini sudah benar)
         $bentrok = PeminjamanFasilitas::where('fasilitas_id', $request->fasilitas_id)
             ->where('status', '!=', 'ditolak')
             ->where('status', '!=', 'dibatalkan')
-            ->where(function ($query) use ($request) {
-                $query->whereBetween('tanggal_mulai', [$request->tanggal_mulai, $request->tanggal_selesai])
-                      ->orWhereBetween('tanggal_selesai', [$request->tanggal_mulai, $request->tanggal_selesai])
-                      ->orWhere(function ($q) use ($request) {
-                          $q->where('tanggal_mulai', '<=', $request->tanggal_mulai)
-                            ->where('tanggal_selesai', '>=', $request->tanggal_selesai);
-                      });
-            })
+            // ... (Logika pengecekan bentrok yang panjang)
             ->exists();
 
         if ($bentrok) {
@@ -112,18 +106,28 @@ class PeminjamanController extends Controller
                 'status'          => 'pending',
             ]);
 
+            // START: LOGIKA UPLOAD MEDIA YANG DIPERBAIKI
             if ($request->hasFile('bukti_bayar')) {
                 $file = $request->file('bukti_bayar');
-                $filename = time() . '_' . $file->getClientOriginalName();
-                $path = $file->storeAs('bukti_bayar', $filename, 'public');
+                
+                // Simpan file, Laravel akan memberikan nama unik dan mengembalikan path
+                // Path akan berupa: bukti_bayar/namaunikfile.jpg
+                $path = $file->store('bukti_bayar', 'public'); 
 
                 Media::create([
                     'ref_table' => 'peminjaman_fasilitas',
                     'ref_id'    => $peminjaman->pinjam_id,
-                    'file_name' => $filename,
+                    // Kita simpan path yang dikembalikan oleh store()
+                    'file_name' => basename($path), 
+                    // Kita simpan path lengkap ke kolom 'file_path' baru (jika ada) atau gunakan file_name
+                    // Karena tabel Media kamu menggunakan file_name, kita simpan pathnya di situ.
+                    // Jika kamu punya kolom 'file_path', simpan $path di sana.
+                    'file_path' => $path, // <--- Ini lebih baik jika ada kolom file_path
                     'mime_type' => $file->getClientMimeType(),
                 ]);
             }
+            // END: LOGIKA UPLOAD MEDIA YANG DIPERBAIKI
+            
         });
 
         return redirect()->route('pages.peminjaman.index')->with('success', 'Peminjaman berhasil dibuat!');

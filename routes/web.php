@@ -11,10 +11,42 @@ use App\Http\Controllers\DeveloperController;
 use App\Http\Controllers\PembayaranController;
 use App\Http\Controllers\PeminjamanController;
 use App\Http\Controllers\FasilitasUmumController;
+use Illuminate\Support\Facades\Response; // Pastikan ini ada
+use Illuminate\Support\Facades\Storage; // Pastikan ini ada
+use Illuminate\Support\Facades\Auth; // Tambahkan ini (walaupun sudah di CheckIsLogin)
 
 /*
 |--------------------------------------------------------------------------
-| 1. ROUTE PUBLIC / AUTH
+| 1. ROUTE UTILITY (PROXY STORAGE - AKSES LUAR MIDDLEWARE)
+|--------------------------------------------------------------------------
+| Dipindahkan ke sini agar tidak terhalang oleh masalah session/middleware
+| saat browser me-load aset. Perlindungan Auth::check() dimasukkan secara inline.
+*/
+Route::get('storage-proxy/{folder}/{filename}', function ($folder, $filename) {
+    
+    // 1. Pengecekan Otentikasi Inline
+    if (!Auth::check()) {
+        // Jika tidak login, kembalikan 403 Forbidden.
+        // Ini lebih baik daripada redirect atau 404 dari Nginx/Middleware.
+        abort(403, 'Akses ditolak. Silahkan login.');
+    }
+    
+    // 2. Logic File Download
+    $path = $folder . '/' . $filename; 
+
+    if (!Storage::disk('public')->exists($path)) {
+        abort(404);
+    }
+    
+    // Menggunakan Storage::download() untuk memaksa unduhan
+    return Storage::disk('public')->download($path, $filename);
+
+})->name('storage.proxy');
+
+
+/*
+|--------------------------------------------------------------------------
+| 2. ROUTE PUBLIC / AUTH
 |--------------------------------------------------------------------------
 */
 Route::prefix('pages/auth')->group(function () {
@@ -27,7 +59,7 @@ Route::prefix('pages/auth')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| 2. ROUTE PRIVATE (LOGIN REQUIRED)
+| 3. ROUTE PRIVATE (LOGIN REQUIRED)
 |--------------------------------------------------------------------------
 */
 Route::group(['middleware' => ['checkislogin']], function () {
@@ -87,5 +119,4 @@ Route::group(['middleware' => ['checkislogin']], function () {
             'edit' => 'pages.pembayaran.edit', 'update' => 'pages.pembayaran.update', 'destroy' => 'pages.pembayaran.destroy'
         ]);
     });
-
 });

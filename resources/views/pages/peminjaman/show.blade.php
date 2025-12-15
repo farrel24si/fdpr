@@ -98,20 +98,36 @@
                     @forelse ($peminjaman->media as $media)
                         <div class="col-md-4 col-6">
                             <div class="card h-100 border-0 shadow-sm">
-                                <a href="{{ asset('storage/' . $media->file_name) }}" target="_blank">
-                                    {{-- Cek apakah file adalah image --}}
-                                    @if(in_array(pathinfo($media->file_name, PATHINFO_EXTENSION), ['jpg','jpeg','png','gif','webp']))
-                                        <img src="{{ asset('storage/' . $media->file_name) }}" class="card-img-top" 
-                                             style="height: 150px; object-fit: cover; border-radius: 10px 10px 0 0;" alt="Bukti">
+                                
+                                {{-- LOGIKA PROXY URL: Pastikan file_name adalah path lengkap (bukti_bayar/xyz.jpg) --}}
+                                @php
+                                    $filePath = $media->file_name; 
+                                    // Memecah path: Ambil 'bukti_bayar' dan 'namafile.png'
+                                    $parts = explode('/', $filePath, 2);
+                                    $folder = $parts[0] ?? 'bukti_bayar'; 
+                                    $filename = $parts[1] ?? basename($filePath); 
+
+                                    // Membuat URL menggunakan rute proxy
+                                    $proxyUrl = route('storage.proxy', ['folder' => $folder, 'filename' => $filename]);
+                                @endphp
+
+                                <a href="{{ $proxyUrl }}" target="_blank" class="text-decoration-none">
+                                    {{-- Cek apakah file adalah image (Menggunakan mime_type) --}}
+                                    @if(Str::startsWith($media->mime_type, 'image/'))
+                                        <img src="{{ $proxyUrl }}" class="card-img-top rounded-top" 
+                                             style="height: 150px; object-fit: cover; border-radius: 10px 10px 0 0;" alt="Bukti Pembayaran">
                                     @else
                                         {{-- Jika PDF/Doc --}}
-                                        <div class="d-flex align-items-center justify-content-center bg-secondary text-white" style="height: 150px; border-radius: 10px 10px 0 0;">
-                                            <i class="fas fa-file-alt fa-3x"></i>
+                                        <div class="d-flex flex-column align-items-center justify-content-center bg-secondary text-white p-3 rounded-top" style="height: 150px;">
+                                            <i class="fas fa-file-alt fa-3x mb-2"></i>
+                                            <small class="text-white-50">{{ strtoupper(pathinfo($filePath, PATHINFO_EXTENSION)) }} Document</small>
                                         </div>
                                     @endif
                                 </a>
                                 <div class="card-body p-2 text-center">
-                                    <a href="{{ asset('storage/' . $media->file_name) }}" class="btn btn-xs btn-outline-primary mt-2" download>
+                                    <small class="d-block text-muted mb-1">{{ basename($filePath) }}</small>
+                                    {{-- Link Unduh juga menggunakan proxy --}}
+                                    <a href="{{ $proxyUrl }}" class="btn btn-sm btn-outline-primary" download="{{ basename($filePath) }}">
                                         <i class="fas fa-download"></i> Unduh
                                     </a>
                                 </div>
@@ -119,8 +135,8 @@
                         </div>
                     @empty
                         <div class="col-12 text-center text-muted py-3">
-                            <i class="fas fa-file-invoice fa-2x mb-2"></i>
-                            <p>Tidak ada dokumen diupload.</p>
+                            <i class="fas fa-file-invoice fa-2x mb-2 d-block"></i>
+                            Tidak ada dokumen diupload.
                         </div>
                     @endforelse
                 </div>
@@ -137,7 +153,7 @@
                     <div class="alert alert-warning mb-3">
                         <i class="fas fa-exclamation-triangle me-1"></i> Transaksi ini belum dibayar lunas.
                     </div>
-                    <a href="{{ route('pages.pembayaran.create') }}" class="btn btn-warning w-100 mb-3 text-dark fw-bold">
+                    <a href="{{ route('pages.pembayaran.create', ['pinjam_id' => $peminjaman->pinjam_id]) }}" class="btn btn-warning w-100 mb-3 text-dark fw-bold">
                         <i class="fas fa-cash-register me-2"></i>Catat Pembayaran
                     </a>
                     <hr>

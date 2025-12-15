@@ -68,22 +68,31 @@
         <div class="table-responsive">
             <table class="table text-start align-middle table-bordered table-hover mb-0">
                 <thead>
-                    <tr class="text-dark">
-                        <th scope="col">No</th>
+                    <tr class="text-dark bg-white">
+                        <th scope="col" width="5%">No</th>
+                        <th scope="col" width="10%" class="text-center">Foto</th> {{-- KOLOM BARU --}}
                         <th scope="col">Nama</th>
                         <th scope="col">Email</th>
-                        <th scope="col">Role</th> {{-- KOLOM BARU --}}
-                        <th scope="col">Aksi</th>
+                        <th scope="col">Role</th>
+                        <th scope="col" width="15%">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse ($dataUser as $item)
                     <tr>
                         <td>{{ $loop->iteration + (($dataUser->currentPage() - 1) * $dataUser->perPage()) }}</td>
+                        
+                        {{-- MENAMPILKAN FOTO USER --}}
+                        <td class="text-center">
+                            <img src="{{ $item->getProfilePictureUrl() }}" 
+                                 alt="Foto" 
+                                 class="rounded-circle shadow-sm border"
+                                 style="width: 40px; height: 40px; object-fit: cover;">
+                        </td>
+
                         <td>{{ $item->name }}</td>
                         <td>{{ $item->email }}</td>
                         <td>
-                            {{-- MENAMPILKAN ROLE DENGAN BADGE --}}
                             @if($item->role == 'Super Admin')
                                 <span class="badge bg-danger">{{ $item->role }}</span>
                             @elseif($item->role == 'Admin')
@@ -95,13 +104,13 @@
                         <td>
                             <div class="btn-group" role="group">
                                 <a href="{{ route('pages.user.edit', $item->id) }}" class="btn btn-warning btn-sm">
-                                    <i class="fas fa-edit me-1"></i>Edit
+                                    <i class="fas fa-edit"></i>
                                 </a>
                                 <form action="{{ route('pages.user.destroy', $item->id) }}" method="POST" class="d-inline">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Yakin ingin menghapus user ini?')">
-                                        <i class="fas fa-trash me-1"></i>Hapus
+                                        <i class="fas fa-trash"></i>
                                     </button>
                                 </form>
                             </div>
@@ -109,8 +118,11 @@
                     </tr>
                     @empty
                     <tr>
-                        {{-- Colspan disesuaikan jadi 5 karena ada kolom Role --}}
-                        <td colspan="5" class="text-center">Tidak ada data ditemukan</td>
+                        {{-- Colspan jadi 6 karena tambah 1 kolom foto --}}
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            <i class="fas fa-user-slash fa-2x mb-2 d-block"></i>
+                            Tidak ada data user ditemukan
+                        </td>
                     </tr>
                     @endforelse
                 </tbody>
