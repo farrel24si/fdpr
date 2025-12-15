@@ -14,6 +14,8 @@ use App\Http\Controllers\FasilitasUmumController;
 use Illuminate\Support\Facades\Response; // Pastikan ini ada
 use Illuminate\Support\Facades\Storage; // Pastikan ini ada
 use Illuminate\Support\Facades\Auth; // Tambahkan ini (walaupun sudah di CheckIsLogin)
+use App\Http\Controllers\StorageController; // Buat controller baru
+
 
 /*
 |--------------------------------------------------------------------------
@@ -22,27 +24,33 @@ use Illuminate\Support\Facades\Auth; // Tambahkan ini (walaupun sudah di CheckIs
 | Dipindahkan ke sini agar tidak terhalang oleh masalah session/middleware
 | saat browser me-load aset. Perlindungan Auth::check() dimasukkan secara inline.
 */
-Route::get('storage-proxy/{folder}/{filename}', function ($folder, $filename) {
-    
-    // 1. Pengecekan Otentikasi Inline
+// Versi 1: Simple Proxy (tanpa controller)
+Route::get('/storage-proxy/{folder}/{filename}', function ($folder, $filename) {
+    // 1. Cek auth terlebih dahulu
     if (!Auth::check()) {
-        // Jika tidak login, kembalikan 403 Forbidden.
-        // Ini lebih baik daripada redirect atau 404 dari Nginx/Middleware.
-        abort(403, 'Akses ditolak. Silahkan login.');
+        abort(403, 'Silakan login terlebih dahulu');
     }
     
-    // 2. Logic File Download
-    $path = $folder . '/' . $filename; 
-
+    // 2. Validasi folder yang diizinkan
+    $allowedFolders = ['bukti_bayar', 'media', 'profiles'];
+    if (!in_array($folder, $allowedFolders)) {
+        abort(403, 'Folder tidak diizinkan');
+    }
+    
+    // 3. Path lengkap file
+    $path = $folder . '/' . $filename;
+    
+    // 4. Cek apakah file ada di storage public
     if (!Storage::disk('public')->exists($path)) {
-        abort(404);
+        abort(404, 'File tidak ditemukan: ' . $path);
     }
     
-    // Menggunakan Storage::download() untuk memaksa unduhan
-    return Storage::disk('public')->download($path, $filename);
-
-})->name('storage.proxy');
-
+    // 5. Dapatkan full path fisik
+    $fullPath = Storage::disk('public')->path($path);
+    
+    // 6. Return file response
+    return response()->file($fullPath);
+})->name('storage.proxy'); // NAMA ROUTE: 'storage.proxy'
 
 /*
 |--------------------------------------------------------------------------

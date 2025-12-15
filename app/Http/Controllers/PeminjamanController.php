@@ -77,15 +77,21 @@ class PeminjamanController extends Controller
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
             'tujuan'          => 'required|string',
             'total_biaya'     => 'required|numeric|min:0',
-            // Kita ubah dari 'image' menjadi 'mimes' agar lebih fleksibel
-            'bukti_bayar'     => 'nullable|mimes:jpeg,png,jpg|max:2048', 
+            'bukti_bayar'     => 'nullable|mimes:jpeg,png,jpg,pdf|max:2048', 
         ]);
 
-        // Cek Bentrok Jadwal (Logika ini sudah benar)
+        // Cek bentrok jadwal
         $bentrok = PeminjamanFasilitas::where('fasilitas_id', $request->fasilitas_id)
             ->where('status', '!=', 'ditolak')
             ->where('status', '!=', 'dibatalkan')
-            // ... (Logika pengecekan bentrok yang panjang)
+            ->where(function ($query) use ($request) {
+                $query->whereBetween('tanggal_mulai', [$request->tanggal_mulai, $request->tanggal_selesai])
+                      ->orWhereBetween('tanggal_selesai', [$request->tanggal_mulai, $request->tanggal_selesai])
+                      ->orWhere(function ($q) use ($request) {
+                          $q->where('tanggal_mulai', '<=', $request->tanggal_mulai)
+                            ->where('tanggal_selesai', '>=', $request->tanggal_selesai);
+                      });
+            })
             ->exists();
 
         if ($bentrok) {
@@ -95,6 +101,7 @@ class PeminjamanController extends Controller
         $kodeBooking = 'PJ-' . date('Ymd') . '-' . strtoupper(Str::random(4));
 
         DB::transaction(function () use ($request, $kodeBooking) {
+            // 1. Buat peminjaman
             $peminjaman = PeminjamanFasilitas::create([
                 'fasilitas_id'    => $request->fasilitas_id,
                 'warga_id'        => $request->warga_id,
@@ -106,38 +113,41 @@ class PeminjamanController extends Controller
                 'status'          => 'pending',
             ]);
 
-            // START: LOGIKA UPLOAD MEDIA YANG DIPERBAIKI
+            // 2. Upload bukti bayar jika ada
             if ($request->hasFile('bukti_bayar')) {
                 $file = $request->file('bukti_bayar');
                 
-                // Simpan file, Laravel akan memberikan nama unik dan mengembalikan path
-                // Path akan berupa: bukti_bayar/namaunikfile.jpg
-                $path = $file->store('bukti_bayar', 'public'); 
-
+                // Generate nama file yang unik
+                $fileName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
+                
+                // Simpan ke storage
+                $file->storeAs('bukti_bayar', $fileName, 'public');
+                
+                // Simpan ke database
                 Media::create([
-                    'ref_table' => 'peminjaman_fasilitas',
-                    'ref_id'    => $peminjaman->pinjam_id,
-                    // Kita simpan path yang dikembalikan oleh store()
-                    'file_name' => basename($path), 
-                    // Kita simpan path lengkap ke kolom 'file_path' baru (jika ada) atau gunakan file_name
-                    // Karena tabel Media kamu menggunakan file_name, kita simpan pathnya di situ.
-                    // Jika kamu punya kolom 'file_path', simpan $path di sana.
-                    'file_path' => $path, // <--- Ini lebih baik jika ada kolom file_path
-                    'mime_type' => $file->getClientMimeType(),
+                    'ref_table'  => 'peminjaman_fasilitas',
+                    'ref_id'     => $peminjaman->pinjam_id,
+                    'file_name'  => $fileName, // Hanya nama file saja
+                    'mime_type'  => $file->getClientMimeType(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
             }
-            // END: LOGIKA UPLOAD MEDIA YANG DIPERBAIKI
-            
         });
 
         return redirect()->route('pages.peminjaman.index')->with('success', 'Peminjaman berhasil dibuat!');
     }
 
     public function show($id)
-    {
-        $peminjaman = PeminjamanFasilitas::with(['fasilitas', 'warga', 'media'])->findOrFail($id);
-        return view('pages.peminjaman.show', compact('peminjaman'));
-    }
+{
+    $peminjaman = PeminjamanFasilitas::with([
+        'fasilitas',
+        'warga', 
+        'media' // Pastikan relasi media ada di model PeminjamanFasilitas
+    ])->findOrFail($id);
+    
+    return view('pages.peminjaman.show', compact('peminjaman'));
+}
 
     public function edit($id)
     {
@@ -149,38 +159,61 @@ class PeminjamanController extends Controller
     }
 
     public function update(Request $request, $id)
-    {
-        $peminjaman = PeminjamanFasilitas::findOrFail($id);
+{
+    $peminjaman = PeminjamanFasilitas::findOrFail($id);
 
-        $request->validate([
-            'warga_id'        => 'required|exists:warga,warga_id',
-            'fasilitas_id'    => 'required|exists:fasilitas_umum,fasilitas_id',
-            'tanggal_mulai'   => 'required|date',
-            'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
-            'tujuan'          => 'required|string',
-            'total_biaya'     => 'required|numeric|min:0',
-            'status'          => 'required|in:pending,disetujui,ditolak,selesai,dibatalkan',
-        ]);
+    $request->validate([
+        'warga_id'        => 'required|exists:warga,warga_id',
+        'fasilitas_id'    => 'required|exists:fasilitas_umum,fasilitas_id',
+        'tanggal_mulai'   => 'required|date',
+        'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
+        'tujuan'          => 'required|string',
+        'total_biaya'     => 'required|numeric|min:0',
+        'status'          => 'required|in:pending,disetujui,ditolak,selesai,dibatalkan',
+        'bukti_bayar'     => 'nullable|mimes:jpeg,png,jpg,pdf|max:2048', // TAMBAHKAN VALIDASI INI
+    ]);
 
-        // Cek Bentrok (Kecuali punya sendiri)
-        $bentrok = PeminjamanFasilitas::where('fasilitas_id', $request->fasilitas_id)
-            ->where('pinjam_id', '!=', $id)
-            ->where('status', '!=', 'ditolak')
-            ->where('status', '!=', 'dibatalkan')
-            ->where(function ($query) use ($request) {
-                $query->whereBetween('tanggal_mulai', [$request->tanggal_mulai, $request->tanggal_selesai])
-                      ->orWhereBetween('tanggal_selesai', [$request->tanggal_mulai, $request->tanggal_selesai]);
-            })
-            ->exists();
+    // Cek Bentrok (Kecuali punya sendiri)
+    $bentrok = PeminjamanFasilitas::where('fasilitas_id', $request->fasilitas_id)
+        ->where('pinjam_id', '!=', $id)
+        ->where('status', '!=', 'ditolak')
+        ->where('status', '!=', 'dibatalkan')
+        ->where(function ($query) use ($request) {
+            $query->whereBetween('tanggal_mulai', [$request->tanggal_mulai, $request->tanggal_selesai])
+                  ->orWhereBetween('tanggal_selesai', [$request->tanggal_mulai, $request->tanggal_selesai]);
+        })
+        ->exists();
 
-        if ($bentrok) {
-            return back()->with('error', 'Tanggal bentrok dengan peminjaman lain!')->withInput();
-        }
-
-        $peminjaman->update($request->all());
-
-        return redirect()->route('pages.peminjaman.index')->with('success', 'Data peminjaman diperbarui.');
+    if ($bentrok) {
+        return back()->with('error', 'Tanggal bentrok dengan peminjaman lain!')->withInput();
     }
+
+    // Update data peminjaman
+    $peminjaman->update($request->except('bukti_bayar'));
+
+    // Upload bukti bayar baru jika ada
+    if ($request->hasFile('bukti_bayar')) {
+        $file = $request->file('bukti_bayar');
+        
+        // Generate nama file yang unik
+        $fileName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
+        
+        // Simpan ke storage
+        $file->storeAs('bukti_bayar', $fileName, 'public');
+        
+        // Simpan ke database
+        Media::create([
+            'ref_table'  => 'peminjaman_fasilitas',
+            'ref_id'     => $peminjaman->pinjam_id,
+            'file_name'  => $fileName,
+            'mime_type'  => $file->getClientMimeType(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    return redirect()->route('pages.peminjaman.index')->with('success', 'Data peminjaman diperbarui.');
+}
 
     public function updateStatus(Request $request, $id)
     {

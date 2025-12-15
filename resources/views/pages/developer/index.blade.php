@@ -193,9 +193,9 @@
                     {{-- Sosmed --}}
                     <div class="d-flex justify-content-center gap-3 pb-3">
                         <a href="https://github.com/farrel24si" target="_blank" class="social-btn" title="Github"><i class="fab fa-github"></i></a>
-                        <a href="https://linkedin.com/in/farrel" target="_blank" class="social-btn" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
-                        <a href="https://instagram.com/username" target="_blank" class="social-btn" title="Instagram"><i class="fab fa-instagram"></i></a>
-                        <a href="https://wa.me/62812345678" target="_blank" class="social-btn" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+                        <a href="https://linkedin.com/in/farrel-aditya-nugraha-nugraha-5a0b9b392" target="_blank" class="social-btn" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="https://instagram.com/farrel.a.n" target="_blank" class="social-btn" title="Instagram"><i class="fab fa-instagram"></i></a>
+                        <a href="https://wa.me/6281378006219" target="_blank" class="social-btn" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
                     </div>
                 </div>
             </div>

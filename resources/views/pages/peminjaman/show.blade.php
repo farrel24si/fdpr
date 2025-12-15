@@ -98,36 +98,30 @@
                     @forelse ($peminjaman->media as $media)
                         <div class="col-md-4 col-6">
                             <div class="card h-100 border-0 shadow-sm">
-                                
-                                {{-- LOGIKA PROXY URL: Pastikan file_name adalah path lengkap (bukti_bayar/xyz.jpg) --}}
                                 @php
-                                    $filePath = $media->file_name; 
-                                    // Memecah path: Ambil 'bukti_bayar' dan 'namafile.png'
-                                    $parts = explode('/', $filePath, 2);
-                                    $folder = $parts[0] ?? 'bukti_bayar'; 
-                                    $filename = $parts[1] ?? basename($filePath); 
-
-                                    // Membuat URL menggunakan rute proxy
-                                    $proxyUrl = route('storage.proxy', ['folder' => $folder, 'filename' => $filename]);
+                                    // Generate URL langsung menggunakan asset()
+                                    $imageUrl = asset('storage/bukti_bayar/' . $media->file_name);
+                                    
+                                    // Cek apakah file adalah gambar
+                                    $isImage = Str::startsWith($media->mime_type, 'image/');
                                 @endphp
 
-                                <a href="{{ $proxyUrl }}" target="_blank" class="text-decoration-none">
-                                    {{-- Cek apakah file adalah image (Menggunakan mime_type) --}}
-                                    @if(Str::startsWith($media->mime_type, 'image/'))
-                                        <img src="{{ $proxyUrl }}" class="card-img-top rounded-top" 
-                                             style="height: 150px; object-fit: cover; border-radius: 10px 10px 0 0;" alt="Bukti Pembayaran">
+                                <a href="{{ $imageUrl }}" target="_blank" class="text-decoration-none">
+                                    @if($isImage)
+                                        <img src="{{ $imageUrl }}" class="card-img-top rounded-top" 
+                                             style="height: 150px; object-fit: cover; border-radius: 10px 10px 0 0;" alt="Bukti Pembayaran"
+                                             onerror="this.onerror=null; this.src='https://via.placeholder.com/300x150?text=Gambar+Tidak+Tersedia'">
                                     @else
                                         {{-- Jika PDF/Doc --}}
                                         <div class="d-flex flex-column align-items-center justify-content-center bg-secondary text-white p-3 rounded-top" style="height: 150px;">
                                             <i class="fas fa-file-alt fa-3x mb-2"></i>
-                                            <small class="text-white-50">{{ strtoupper(pathinfo($filePath, PATHINFO_EXTENSION)) }} Document</small>
+                                            <small class="text-white-50">{{ strtoupper(pathinfo($media->file_name, PATHINFO_EXTENSION)) }} Document</small>
                                         </div>
                                     @endif
                                 </a>
                                 <div class="card-body p-2 text-center">
-                                    <small class="d-block text-muted mb-1">{{ basename($filePath) }}</small>
-                                    {{-- Link Unduh juga menggunakan proxy --}}
-                                    <a href="{{ $proxyUrl }}" class="btn btn-sm btn-outline-primary" download="{{ basename($filePath) }}">
+                                    <small class="d-block text-muted mb-1">{{ basename($media->file_name) }}</small>
+                                    <a href="{{ $imageUrl }}" class="btn btn-sm btn-outline-primary" download="{{ basename($media->file_name) }}">
                                         <i class="fas fa-download"></i> Unduh
                                     </a>
                                 </div>
