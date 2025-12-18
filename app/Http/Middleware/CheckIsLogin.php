@@ -11,7 +11,7 @@ class CheckIsLogin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // HAPUS TANDA KOMENTAR (//) AGAR AKTIF
+       
         if (!Auth::check()) {
             return redirect()->route('pages.auth.index')
                 ->with('error', 'Silahkan login terlebih dahulu!');
