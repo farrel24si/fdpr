@@ -11,8 +11,7 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
-        // PEMBERSIHAN: Hapus if (!session(...))
-        // Middleware 'checkrole' di route sudah menjaga pintu ini.
+     
 
         $search  = $request->get('search');
         $perPage = $request->get('perPage', 10);

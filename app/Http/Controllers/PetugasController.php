@@ -12,36 +12,23 @@ class PetugasController extends Controller
     // 1. INDEX (Update: Tambah Search, Filter, dan Pagination Dinamis)
     public function index(Request $request)
     {
-        // Ambil parameter dari URL
-        $perPage = $request->get('perPage', 10); // Default 10 baris
+        $perPage = $request->get('perPage', 10); 
         $search  = $request->get('search');
         $fasilitasId = $request->get('fasilitas_id');
         $peran   = $request->get('peran');
-
-        // Query Dasar
         $query = PetugasFasilitas::with(['fasilitas', 'warga']);
-
-        // Logika Pencarian (Berdasarkan Nama Warga)
         if ($search) {
             $query->whereHas('warga', function($q) use ($search) {
                 $q->where('nama', 'like', "%{$search}%");
             });
         }
-
-        // Logika Filter Fasilitas
         if ($fasilitasId) {
             $query->where('fasilitas_id', $fasilitasId);
         }
-
-        // Logika Filter Peran
         if ($peran) {
             $query->where('peran', $peran);
         }
-
-        // Eksekusi Pagination (withQueryString agar filter tidak hilang saat pindah halaman)
         $petugas = $query->latest()->paginate($perPage)->withQueryString();
-
-        // Ambil data fasilitas untuk Dropdown Filter
         $allFasilitas = FasilitasUmum::all();
 
         return view('pages.petugas.index', compact('petugas', 'allFasilitas', 'perPage'));

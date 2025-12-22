@@ -134,10 +134,3 @@
     </div>
 </div>
 @endsection
-
-@push('styles')
-<style>
-    .hover-scale { transition: transform 0.2s; }
-    .hover-scale:hover { transform: scale(1.05); }
-</style>
-@endpush

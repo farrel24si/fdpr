@@ -57,7 +57,6 @@ class AuthController extends Controller
             return ! preg_match('/[0-9]/', $value);
         });
 
-        // 2. Aturan Validasi
         $validator = Validator::make($request->all(), [
             'nama'             => 'required|string|no_numbers',
             'email'            => 'required|email|unique:users,email',
@@ -67,20 +66,17 @@ class AuthController extends Controller
             'confirm_password' => 'required|string|same:password',
         ], [
             'nama.no_numbers' => 'Nama tidak boleh mengandung angka',
-            // Tambahkan pesan custom lain jika perlu
         ]);
 
         if ($validator->fails()) {
             return redirect()->back()->withErrors($validator)->withInput();
         }
-
         try {
-            // 3. CREATE USER (Default Role: User)
             User::create([
                 'name'     => $request->nama,
                 'email'    => $request->email,
                 'password' => Hash::make($request->password),
-                'role'     => 'User', // <--- AMAN: Default jadi User Biasa
+                'role'     => 'User', 
             ]);
 
             return redirect()->route('pages.auth.index')

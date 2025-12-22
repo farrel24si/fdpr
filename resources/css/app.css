@@ -9,3 +9,8 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+.hover-scale { transition: transform 0.2s; }
+.hover-scale:hover { transform: translateY(-2px); }
+.input-group-text { background-color: #f8f9fa; }
+.form-control:focus { box-shadow: none; border-color: #dee2e6; }

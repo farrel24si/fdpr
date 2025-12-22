@@ -23,7 +23,7 @@ class WargaController extends Controller
             })
             ->orderBy('warga_id', 'desc')
             ->paginate($perPage)
-            ->appends($request->all()); // Pertahankan semua parameter
+            ->appends($request->all()); 
 
     return view('pages.warga.index', compact('dataWarga', 'filters', 'search', 'perPage'));
 }

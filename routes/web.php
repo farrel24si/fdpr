@@ -71,7 +71,6 @@ Route::prefix('pages/auth')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::group(['middleware' => ['checkislogin']], function () {
-
     // --- A. AKSES SEMUA ROLE (User, Admin, Super Admin) ---
     Route::get('/', function () { return redirect()->route('dashboard'); });
     
