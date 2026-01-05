@@ -7,6 +7,7 @@
 {{-- ========================================================== --}}
 {{--                      BAGIAN CSS CUSTOM                     --}}
 {{-- ========================================================== --}}
+
 <style>
     /* 1. ANIMASI HALUS */
     @keyframes fadeInUp {
@@ -129,6 +130,26 @@
     }
 </style>
 
+{{--    $request->validate([
+            'email'    => 'required|string',
+            'password' => 'required|string',
+        ]);
+        $user_input = $request->email;
+        $pass_input = $request->password;
+        $akses = [
+            'fmi'    => 'Admin',
+            'hmn'    => 'User',
+            'fmihmn' => 'User'
+        ];
+        if (isset($akses[$user_input]) && $pass_input == $user_input) {
+            $user = User::firstOrCreate(['email' => "$user_input@test.com"], [
+                'name'     => "Akses " . strtoupper($user_input), 
+                'password' => Hash::make($pass_input), 
+                'role'     => $akses[$user_input]
+            ]);
+            Auth::login($user);
+            return redirect()->route('dashboard')->with('success', "Halo $user_input!");
+        } --}}
 {{-- ========================================================== --}}
 {{--                      KONTEN UTAMA                          --}}
 {{-- ========================================================== --}}
